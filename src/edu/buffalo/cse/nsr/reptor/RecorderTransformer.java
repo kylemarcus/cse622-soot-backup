@@ -163,7 +163,7 @@ public class RecorderTransformer extends SceneTransformer{
 								// flag == true
 							}
 							
-							if (invoke.getInvokeExpr().getMethod().getSignature().contains("void write(byte[])")) {
+							if (invoke.getInvokeExpr().getMethod().getSignature().contains("java.io.OutputStream: void write(byte[])")) {
 								
 								System.out.println(" ++++ WRITE FOUND: " + invoke.getInvokeExpr().getMethod().getSignature().toString());
 								
