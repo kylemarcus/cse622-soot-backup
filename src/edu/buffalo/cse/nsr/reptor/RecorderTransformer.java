@@ -1,8 +1,10 @@
 package edu.buffalo.cse.nsr.reptor;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -20,9 +22,16 @@ import soot.Type;
 import soot.Unit;
 import soot.Value;
 import soot.javaToJimple.LocalGenerator;
+import soot.jimple.AssignStmt;
+import soot.jimple.DefinitionStmt;
+import soot.jimple.FieldRef;
+import soot.jimple.InstanceInvokeExpr;
+import soot.jimple.InvokeExpr;
 import soot.jimple.InvokeStmt;
 import soot.jimple.Jimple;
 import soot.jimple.NopStmt;
+import soot.jimple.Stmt;
+import soot.jimple.StringConstant;
 import soot.jimple.VirtualInvokeExpr;
 import soot.jimple.internal.JNewExpr;
 import soot.util.Chain;
@@ -96,7 +105,13 @@ public class RecorderTransformer extends SceneTransformer{
 	@Override
 	protected void internalTransform(String arg0, @SuppressWarnings("rawtypes") Map options) {
 //		compileLoadClasses("edu/buffalo/cse/nsr/reptor");
+		
+		String packageName = Scene.v().getApplicationClasses().getFirst().getPackageName();
+		
 		compileLoadClasses(BackupLib.class.getPackage().getName().replace(".", "/"));
+		
+		FilesMetaData fileMetaData = new FilesMetaData();
+		
 		Chain<SootClass> applicationClasses = Scene.v().getApplicationClasses();
 		for(SootClass c: applicationClasses){
 			List<SootMethod> methods = c.getMethods();
@@ -106,6 +121,35 @@ public class RecorderTransformer extends SceneTransformer{
 					Iterator<Unit> i = body.getUnits().snapshotIterator();
 					while(i.hasNext()){
 						Unit u = i.next();
+						
+						if (u instanceof DefinitionStmt) {
+							
+							DefinitionStmt ds = (DefinitionStmt) u;
+							
+							if (ds.containsInvokeExpr()) {
+								
+								InvokeExpr invoke = ds.getInvokeExpr();
+								
+								// looks for openFileOutput with string as the fist arg
+								// NOTE: this might need to be created first before running the code incase its out of order.
+								if (invoke.getMethod().getSignature().contains("java.io.FileOutputStream openFileOutput(java.lang.String,int)")) {
+									
+									System.out.println(" ++++ CREATE FILE FOUND: " + invoke.getMethod().getSignature().toString());
+									
+									String s = invoke.getArg(0).toString();
+									String fileName = s.substring(1, s.length()-1);
+									
+									System.out.println(fileName);
+									
+									Value l = ds.getLeftOp();
+									
+									fileMetaData.putFileName(fileName, l);
+									
+								}
+							
+							}
+							
+						}
 						
 						if (u instanceof InvokeStmt) {
 							
@@ -124,7 +168,11 @@ public class RecorderTransformer extends SceneTransformer{
 								System.out.println(" ++++ WRITE FOUND: " + invoke.getInvokeExpr().getMethod().getSignature().toString());
 								
 								// get byte array argument
-								Value b = invoke.getInvokeExpr().getArg(0);
+								//Value b = invoke.getInvokeExpr().getArg(0);
+								
+								// get the calling object (FileOutputStream)
+								Value b = ((InstanceInvokeExpr) invoke.getInvokeExpr()).getBase();
+								System.out.println(fileMetaData.getFileName(b));
 								
 								// creates a list of units to add to source code
 								List<Unit> generated = new ArrayList<Unit>();
@@ -145,21 +193,30 @@ public class RecorderTransformer extends SceneTransformer{
 								System.out.println("Method count: " + count);
 								
 								// create a new class ref with local
-								Local wLocal = lg.generateLocal(backupClassRef.getType());
-								Value wNewExpr = Jimple.v().newNewExpr(backupClassRef.getType());
+								//Local wLocal = lg.generateLocal(backupClassRef.getType());
+								//Value wNewExpr = Jimple.v().newNewExpr(backupClassRef.getType());
 								
 								// add it got the generated units
-								generated.add(Jimple.v().newAssignStmt(wLocal, wNewExpr));
+								//generated.add(Jimple.v().newAssignStmt(wLocal, wNewExpr));
 								
 								// special invoke
-							    SootMethod init = backupClassRef.getMethodByName(SootMethod.constructorName);
-							    Value wNewInit = Jimple.v().newSpecialInvokeExpr(wLocal, init.makeRef());
-						        generated.add(Jimple.v().newInvokeStmt(wNewInit));
+							    //SootMethod init = backupClassRef.getMethodByName(SootMethod.constructorName);
+							    //Value wNewInit = Jimple.v().newSpecialInvokeExpr(wLocal, init.makeRef());
+						        //generated.add(Jimple.v().newInvokeStmt(wNewInit));
 						        
 						        // invoke method on new class
-						        Local tmpRef = null;
-						        SootMethod fileBackupMethod = backupClassRef.getMethodByName("fileBackup");
-						        generated.add(Jimple.v().newInvokeStmt(Jimple.v().newVirtualInvokeExpr(wLocal, fileBackupMethod.makeRef())));
+						        //Local tmpRef = null;
+						        //SootMethod fileBackupMethod = backupClassRef.getMethodByName("fileBackup");
+						        //generated.add(Jimple.v().newInvokeStmt(Jimple.v().newVirtualInvokeExpr(wLocal, fileBackupMethod.makeRef())));
+						        
+								// create a static call to backup method
+						        SootMethod fileBackupMethod2 = backupClassRef.getMethodByName("fileWriteBackup");
+						        java.util.List l = new LinkedList();
+						        l.add(b);
+						        String fn = fileMetaData.getFileName(b);
+						        l.add(StringConstant.v(fn));
+						        l.add(StringConstant.v(packageName));
+						        generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(fileBackupMethod2.makeRef(), l)));
 								
 								// insert all units created
 								body.getUnits().insertAfter(generated, u);

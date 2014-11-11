@@ -1,40 +1,63 @@
 package edu.buffalo.cse.nsr.reptor;
 
 import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 
-import android.content.Context;
-import android.content.Intent;
+import android.os.Environment;
 
 public class BackupLib {
 	
-	BackupLib() {
-		
-	}
+	public static final String DATA_PATH = "/data/data/";
+	public static final String FILES_DIR = "/files/";
+	public static final String BACKUP_DIR = "/cse622_backup/";
 	
-	public void fileBackup() {
+	/*
+	 * Copy file to backup directoy on external storage directory
+	 */
+	public static void fileWriteBackup(FileOutputStream fos, String fileName, String packageName) {
 		
-		Intent sendIntent = new Intent();
-		sendIntent.setAction(Intent.ACTION_SEND);
-		sendIntent.putExtra(Intent.EXTRA_TEXT, "This is my text to send.");
-		sendIntent.setType("text/plain");
-		//startActivity(sendIntent);
-		 
-	}
-	
-	public static void fileWriteBackup(FileOutputStream fos) {
 		try {
+			
 			fos.flush();
-			FileDescriptor fd = fos.getFD();
-			FileInputStream fis = new FileInputStream(fd);
+			
+			String fromFile = DATA_PATH + packageName + FILES_DIR + fileName;
+			String toFile = getExternalDir(packageName) + FILES_DIR + fileName;
+			Process p = Runtime.getRuntime().exec("cp " + fromFile + " " + toFile);
+			if (p.exitValue() != 0) {
+				throw new Exception("Copy failed from file " + fromFile + " to " + toFile);
+			}
 			
 		} catch (Exception e) {
 			System.out.println("Count not complete file write backup:"  + e.getMessage());
 		}
 		
+	}
+	
+	/*
+	 * Returns the path where to store files in sd card using the package name
+	 */
+	private static String getExternalDir(String packageName) throws Exception {
+		
+		String state = Environment.getExternalStorageState();
+		
+		if (Environment.MEDIA_MOUNTED.equals(state)) {
+			
+		    // We can read and write the media
+			File folder = new File(Environment.getExternalStorageDirectory() + BACKUP_DIR + packageName);
+			
+			if (!folder.exists()) {
+			    if (folder.mkdir()) {
+			    	return folder.getAbsolutePath();
+			    } else {
+			    	throw new Exception("Could not create dir: " + folder.getAbsolutePath());
+			    }
+			} else {
+				return folder.getAbsolutePath();
+			}
+			
+		} else {
+			throw new Exception("Can not write to or SD card is not mounted");
+		}
 		
 	}
 
