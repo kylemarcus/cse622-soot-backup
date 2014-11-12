@@ -1,7 +1,6 @@
 package edu.buffalo.cse.nsr.reptor;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -12,31 +11,24 @@ import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 
 import soot.Body;
-import soot.Local;
-import soot.RefType;
 import soot.Scene;
 import soot.SceneTransformer;
 import soot.SootClass;
 import soot.SootMethod;
-import soot.Type;
 import soot.Unit;
 import soot.Value;
-import soot.javaToJimple.LocalGenerator;
-import soot.jimple.AssignStmt;
 import soot.jimple.DefinitionStmt;
-import soot.jimple.FieldRef;
 import soot.jimple.InstanceInvokeExpr;
 import soot.jimple.InvokeExpr;
 import soot.jimple.InvokeStmt;
 import soot.jimple.Jimple;
-import soot.jimple.NopStmt;
-import soot.jimple.Stmt;
 import soot.jimple.StringConstant;
-import soot.jimple.VirtualInvokeExpr;
-import soot.jimple.internal.JNewExpr;
 import soot.util.Chain;
 
 public class RecorderTransformer extends SceneTransformer{
+	
+	public static final String BACKUP_LIB_PACKAGE = "edu.buffalo.cse.nsr.reptor.BackupLib";
+	
 	public RecorderTransformer() {
 	}
 	
@@ -122,6 +114,7 @@ public class RecorderTransformer extends SceneTransformer{
 					while(i.hasNext()){
 						Unit u = i.next();
 						
+						// Look for def statements, ie. = stmt
 						if (u instanceof DefinitionStmt) {
 							
 							DefinitionStmt ds = (DefinitionStmt) u;
@@ -130,7 +123,7 @@ public class RecorderTransformer extends SceneTransformer{
 								
 								InvokeExpr invoke = ds.getInvokeExpr();
 								
-								// looks for openFileOutput with string as the fist arg
+								// looks for openFileOutput with string as the fist arg, uses this to create map from fos -> filename
 								// NOTE: this might need to be created first before running the code incase its out of order.
 								if (invoke.getMethod().getSignature().contains("java.io.FileOutputStream openFileOutput(java.lang.String,int)")) {
 									
@@ -146,11 +139,39 @@ public class RecorderTransformer extends SceneTransformer{
 									fileMetaData.putFileName(fileName, l);
 									
 								}
+								
+								/*
+								 * looks for FILE OPEN FOR READ, hooks code to copy from backup if not found
+								 */
+								if (invoke.getMethod().getSignature().contains("java.io.FileInputStream openFileInput(java.lang.String)")) {
+									
+									System.out.println(" ++++ OPEN FILE FOR READ FOUND: " + invoke.getMethod().getSignature().toString());
+									
+									Value fileName = invoke.getArg(0);
+									
+									// creates a list of units to add to source code
+									List<Unit> generated = new ArrayList<Unit>();
+									
+									SootClass backupClassRef = Scene.v().getSootClass(BACKUP_LIB_PACKAGE);
+									
+									SootMethod fileOpenBackupMethod = backupClassRef.getMethodByName("fileOpenBackup");
+									
+									java.util.List<Value> l = new LinkedList<Value>();
+							        l.add(fileName);
+							        l.add(StringConstant.v(packageName));
+							        generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(fileOpenBackupMethod.makeRef(), l)));
+									
+									// insert all units created
+									body.getUnits().insertBefore(generated, u);
+									
+								}
+								
 							
 							}
 							
 						}
 						
+						// look for invoke expressions, ie. just calling a method
 						if (u instanceof InvokeStmt) {
 							
 							InvokeStmt invoke = (InvokeStmt)u;
@@ -163,6 +184,11 @@ public class RecorderTransformer extends SceneTransformer{
 								// flag == true
 							}
 							
+							
+							
+							/*
+							 * looks for FILE WRITE, hooks code to copy file to backup
+							 */
 							if (invoke.getInvokeExpr().getMethod().getSignature().contains("java.io.OutputStream: void write(byte[])")) {
 								
 								System.out.println(" ++++ WRITE FOUND: " + invoke.getInvokeExpr().getMethod().getSignature().toString());
@@ -178,13 +204,13 @@ public class RecorderTransformer extends SceneTransformer{
 								List<Unit> generated = new ArrayList<Unit>();
 								
 								// create locals
-								LocalGenerator lg = new LocalGenerator(body);
+								//LocalGenerator lg = new LocalGenerator(body);
 								
 								//class reference to backup lib
 								//System.out.println("CP: " + Scene.v().getSootClassPath());
 								//Scene.v().setSootClassPath(Scene.v().getSootClassPath()+":./libs");
 								///SootClass backupClassRef = Scene.v().loadClassAndSupport("edu.buffalo.cse.nsr.reptor.BackupLib");
-								SootClass backupClassRef = Scene.v().getSootClass("edu.buffalo.cse.nsr.reptor.BackupLib");
+								SootClass backupClassRef = Scene.v().getSootClass(BACKUP_LIB_PACKAGE);
 								///Scene.v().loadNecessaryClasses();
 								//Scene.v().forceResolve("edu.buffalo.cse.nsr.reptor.BackupLib", SootClass.SIGNATURES);
 								///backupClassRef.setApplicationClass();
@@ -211,7 +237,7 @@ public class RecorderTransformer extends SceneTransformer{
 						        
 								// create a static call to backup method
 						        SootMethod fileBackupMethod2 = backupClassRef.getMethodByName("fileWriteBackup");
-						        java.util.List l = new LinkedList();
+						        java.util.List<Value> l = new LinkedList<Value>();
 						        l.add(b);
 						        String fn = fileMetaData.getFileName(b);
 						        l.add(StringConstant.v(fn));

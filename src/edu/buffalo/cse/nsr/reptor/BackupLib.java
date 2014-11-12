@@ -12,9 +12,28 @@ public class BackupLib {
 	public static final String BACKUP_DIR = "/cse622_backup/";
 	
 	/*
-	 * Copy file to backup directoy on external storage directory
+	 * Copy file from backup dir to local dir
+	 */
+	public static void fileOpenBackup(String fileName, String packageName) {
+		
+		File f = new File(DATA_PATH + packageName + FILES_DIR + fileName);
+		
+		if (!f.exists()) {
+			// file does not exist so ask backup service for it using a intent?
+			
+			// call backup service, send it fileName and packageName
+			
+			// copy file from ext storage to local storage
+		}
+		
+	}
+	
+	/*
+	 * Copy file to backup directory on external storage directory
 	 */
 	public static void fileWriteBackup(FileOutputStream fos, String fileName, String packageName) {
+		
+		//TODO: look for directory structure inside filename and create those directories too
 		
 		try {
 			
