@@ -27,7 +27,19 @@ import soot.util.Chain;
 
 public class RecorderTransformer extends SceneTransformer{
 	
-	public static final String BACKUP_LIB_PACKAGE = "edu.buffalo.cse.nsr.reptor.BackupLib";
+	private static final String BACKUP_LIB_PACKAGE = "edu.buffalo.cse.nsr.reptor.BackupLib";
+	
+	private static final String FILES_BACKUP_METHOD = "fileWriteBackup";
+	private static final String FILES_RESTORE_METHOD = "fileOpenRestore";
+	private static final String SHARED_PREFS_BACKUP_METHOD = "sharedPrefsBackup";
+	private static final String SHARED_PREFS_RESTORE_METHOD = "sharedPrefsRestore";
+	private static final String DATABASE_BACKUP_METHOD = "databaseBackup";
+	private static final String DATABASE_RESTORE_METHOD = "databaseRestore";
+	
+	private static final String FILE_WRITE_SIG = "java.io.OutputStream: void write(byte[])";
+	private static final String FILE_OPEN_READ_SIG = "java.io.FileInputStream openFileInput(java.lang.String)";
+	private static final String FILE_OPEN_WRITE_SIG = "java.io.FileOutputStream openFileOutput(java.lang.String,int)";
+	private static final String SHARED_PREFS_COMMIT_SIG = "android.content.SharedPreferences$Editor: boolean commit()";
 	
 	public RecorderTransformer() {
 	}
@@ -96,8 +108,8 @@ public class RecorderTransformer extends SceneTransformer{
 
 	@Override
 	protected void internalTransform(String arg0, @SuppressWarnings("rawtypes") Map options) {
-//		compileLoadClasses("edu/buffalo/cse/nsr/reptor");
-		
+	
+		//compileLoadClasses("edu/buffalo/cse/nsr/reptor");
 		String packageName = Scene.v().getApplicationClasses().getFirst().getPackageName();
 		
 		compileLoadClasses(BackupLib.class.getPackage().getName().replace(".", "/"));
@@ -125,7 +137,7 @@ public class RecorderTransformer extends SceneTransformer{
 								
 								// looks for openFileOutput with string as the fist arg, uses this to create map from fos -> filename
 								// NOTE: this might need to be created first before running the code incase its out of order.
-								if (invoke.getMethod().getSignature().contains("java.io.FileOutputStream openFileOutput(java.lang.String,int)")) {
+								if (invoke.getMethod().getSignature().contains(FILE_OPEN_WRITE_SIG)) {
 									
 									System.out.println(" ++++ CREATE FILE FOUND: " + invoke.getMethod().getSignature().toString());
 									
@@ -143,7 +155,7 @@ public class RecorderTransformer extends SceneTransformer{
 								/*
 								 * looks for FILE OPEN FOR READ, hooks code to copy from backup if not found
 								 */
-								if (invoke.getMethod().getSignature().contains("java.io.FileInputStream openFileInput(java.lang.String)")) {
+								if (invoke.getMethod().getSignature().contains(FILE_OPEN_READ_SIG)) {
 									
 									System.out.println(" ++++ OPEN FILE FOR READ FOUND: " + invoke.getMethod().getSignature().toString());
 									
@@ -154,7 +166,7 @@ public class RecorderTransformer extends SceneTransformer{
 									
 									SootClass backupClassRef = Scene.v().getSootClass(BACKUP_LIB_PACKAGE);
 									
-									SootMethod fileOpenBackupMethod = backupClassRef.getMethodByName("fileOpenBackup");
+									SootMethod fileOpenBackupMethod = backupClassRef.getMethodByName(FILES_RESTORE_METHOD);
 									
 									java.util.List<Value> l = new LinkedList<Value>();
 							        l.add(fileName);
@@ -176,20 +188,33 @@ public class RecorderTransformer extends SceneTransformer{
 							
 							InvokeStmt invoke = (InvokeStmt)u;
 							
-							Boolean flag = Boolean.FALSE;
-							if (invoke.getInvokeExpr().getMethod().getSignature().contains("Editor edit()")) {
-								// flag == true
-							}
-							if (invoke.getInvokeExpr().getMethod().getSignature().contains("Editor edit()") && flag) {
-								// flag == true
-							}
-							
-							
+							/*
+							 * looks for SHARED PREFS COMMIT, hooks code to copy shared prefs files to backup
+							 */
+							if (invoke.getInvokeExpr().getMethod().getSignature().contains(SHARED_PREFS_COMMIT_SIG)) {
+								
+								System.out.println(" ++++ SHARED PREFS COMMIT FOUND: " + invoke.getInvokeExpr().getMethod().getSignature().toString());
+								
+								// creates a list of units to add to source code
+								List<Unit> generated = new ArrayList<Unit>();
+								
+								SootClass backupClassRef = Scene.v().getSootClass(BACKUP_LIB_PACKAGE);
+								
+								SootMethod sharedPrefsBackupMethod = backupClassRef.getMethodByName(SHARED_PREFS_BACKUP_METHOD);
+								
+								java.util.List<Value> l = new LinkedList<Value>();
+						        l.add(StringConstant.v(packageName));
+						        generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(sharedPrefsBackupMethod.makeRef(), l)));
+								
+								// insert all units created
+								body.getUnits().insertAfter(generated, u);
+								
+							}							
 							
 							/*
 							 * looks for FILE WRITE, hooks code to copy file to backup
 							 */
-							if (invoke.getInvokeExpr().getMethod().getSignature().contains("java.io.OutputStream: void write(byte[])")) {
+							if (invoke.getInvokeExpr().getMethod().getSignature().contains(FILE_WRITE_SIG)) {
 								
 								System.out.println(" ++++ WRITE FOUND: " + invoke.getInvokeExpr().getMethod().getSignature().toString());
 								
@@ -215,8 +240,8 @@ public class RecorderTransformer extends SceneTransformer{
 								//Scene.v().forceResolve("edu.buffalo.cse.nsr.reptor.BackupLib", SootClass.SIGNATURES);
 								///backupClassRef.setApplicationClass();
 								
-								int count = backupClassRef.getMethodCount();
-								System.out.println("Method count: " + count);
+								//int count = backupClassRef.getMethodCount();
+								//System.out.println("Method count: " + count);
 								
 								// create a new class ref with local
 								//Local wLocal = lg.generateLocal(backupClassRef.getType());
@@ -236,7 +261,7 @@ public class RecorderTransformer extends SceneTransformer{
 						        //generated.add(Jimple.v().newInvokeStmt(Jimple.v().newVirtualInvokeExpr(wLocal, fileBackupMethod.makeRef())));
 						        
 								// create a static call to backup method
-						        SootMethod fileBackupMethod2 = backupClassRef.getMethodByName("fileWriteBackup");
+						        SootMethod fileBackupMethod2 = backupClassRef.getMethodByName(FILES_BACKUP_METHOD);
 						        java.util.List<Value> l = new LinkedList<Value>();
 						        l.add(b);
 						        String fn = fileMetaData.getFileName(b);

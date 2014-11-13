@@ -1,0 +1,34 @@
+Import this project into Eclipse
+
+NOTE: you may need to add the JRE into the Libraries tab in the
+Java Build Path properties
+
+To change the APK file you want to modify look in the Settings.java
+file and modify the settings. In order to get a APK file output you 
+need to change the settings so the output is DEX
+
+Once you have the modified APK file you need to zipalign and sign it
+
+1. You first need to create a key
+
+$ cd ~/.android
+
+$ keytool -genkey -v -keystore debug.keystore -alias android -keyalg RSA -keysize 2048 -validity 20000
+
+password: android
+
+2. Then you can sign the app
+
+$ cd ~/.android
+
+$ ~/Tools/android/sdk/build-tools/20.0.0/zipalign -c -v 4 /home/kmarcus2/workspace/Instrumenter_Example/sootOutput/cse622WriteTest.apk
+
+$ jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore debug.keystore ~/workspace/Instrumenter_Example/sootOutput/cse622WriteTest.apk android
+
+password: android
+
+3. Now you can install the new app
+
+$ adb -s emulator-5554 uninstall com.example.cse622writetest
+
+$ adb -s emulator-5554 install ~/workspace/Instrumenter_Example/sootOutput/cse622WriteTest.apk
