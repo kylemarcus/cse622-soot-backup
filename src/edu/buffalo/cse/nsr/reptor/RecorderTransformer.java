@@ -177,8 +177,11 @@ public class RecorderTransformer extends SceneTransformer{
 							InvokeStmt invoke = (InvokeStmt)u;
 							
 							Boolean flag = Boolean.FALSE;
-							if (invoke.getInvokeExpr().getMethod().getSignature().contains("Editor edit()")) {
+							if (invoke.getInvokeExpr().getMethod().getSignature().contains("SharedPreferences$Editor: boolean commit()")) {
 								// flag == true
+								
+								
+								
 							}
 							if (invoke.getInvokeExpr().getMethod().getSignature().contains("Editor edit()") && flag) {
 								// flag == true

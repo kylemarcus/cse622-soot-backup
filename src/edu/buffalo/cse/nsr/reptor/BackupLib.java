@@ -1,7 +1,11 @@
 package edu.buffalo.cse.nsr.reptor;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 import android.os.Environment;
 
@@ -10,6 +14,7 @@ public class BackupLib {
 	public static final String DATA_PATH = "/data/data/";
 	public static final String FILES_DIR = "/files/";
 	public static final String BACKUP_DIR = "/cse622_backup/";
+	public static final String PREF_DIR = "/shared_prefs/";
 	
 	/*
 	 * Copy file from backup dir to local dir
@@ -80,5 +85,55 @@ public class BackupLib {
 		}
 		
 	}
+	
+	public static void savePref(String packageName){
+		
+		String source = DATA_PATH + packageName + PREF_DIR;
+		String dest = BACKUP_DIR + packageName + PREF_DIR;
+		
+		try {
+			copyDirectory(new File(source),new File(dest));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public static void copyDirectory(File sourceLocation , File targetLocation)
+			throws IOException {
+
+			    if (sourceLocation.isDirectory()) {
+			        if (!targetLocation.exists() && !targetLocation.mkdirs()) {
+			            throw new IOException("Cannot create dir " + targetLocation.getAbsolutePath());
+			        }
+
+			        String[] children = sourceLocation.list();
+			        for (int i=0; i<children.length; i++) {
+			            copyDirectory(new File(sourceLocation, children[i]),
+			                    new File(targetLocation, children[i]));
+			        }
+			    } else {
+
+			        // make sure the directory we plan to store the recording in exists
+			        File directory = targetLocation.getParentFile();
+			        if (directory != null && !directory.exists() && !directory.mkdirs()) {
+			            throw new IOException("Cannot create dir " + directory.getAbsolutePath());
+			        }
+
+			        InputStream in = new FileInputStream(sourceLocation);
+			        OutputStream out = new FileOutputStream(targetLocation);
+
+			        // Copy the bits from instream to outstream
+			        byte[] buf = new byte[1024];
+			        int len;
+			        while ((len = in.read(buf)) > 0) {
+			            out.write(buf, 0, len);
+			        }
+			        in.close();
+			        out.close();
+			        
+			     }
+			}
 
 }
