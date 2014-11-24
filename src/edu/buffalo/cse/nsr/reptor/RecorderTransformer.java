@@ -33,6 +33,9 @@ public class RecorderTransformer extends SceneTransformer{
 	private static final String FILE_OPEN_READ_SIG = "java.io.FileInputStream openFileInput(java.lang.String)";
 	private static final String FILE_OPEN_WRITE_SIG = "java.io.FileOutputStream openFileOutput(java.lang.String,int)";
 	private static final String SHARED_PREFS_COMMIT_SIG = "android.content.SharedPreferences$Editor: boolean commit()";
+	private static final String DATABASE_BACKUP_INSERT_SIG = "android.database.sqlite.SQLiteDatabase: long insert(java.lang.String,java.lang.String,android.content.ContentValues)";
+	
+	
 	public RecorderTransformer() {
 	}
 	protected void compileLoadClasses(String location) {
@@ -154,6 +157,20 @@ public class RecorderTransformer extends SceneTransformer{
 								// insert all units created
 								body.getUnits().insertAfter(generated, u);
 							}
+							
+							if (invoke.getInvokeExpr().getMethod().getSignature().contains(DATABASE_BACKUP_INSERT_SIG)) {
+								System.out.println(" ++++ DB Insert  FOUND: " + invoke.getInvokeExpr().getMethod().getSignature().toString());
+								// creates a list of units to add to source code
+								List<Unit> generated = new ArrayList<Unit>();
+								SootClass backupClassRef = Scene.v().getSootClass(BACKUP_LIB_PACKAGE);
+								SootMethod dataBaseBackupMethod = backupClassRef.getMethodByName(DATABASE_BACKUP_METHOD);
+								java.util.List<Value> l = new LinkedList<Value>();
+								l.add(StringConstant.v(packageName));
+								generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(dataBaseBackupMethod.makeRef(), l)));
+								// insert all units created
+								body.getUnits().insertAfter(generated, u);
+							}
+							
 							/*
 							 * looks for FILE WRITE, hooks code to copy file to backup
 							 */

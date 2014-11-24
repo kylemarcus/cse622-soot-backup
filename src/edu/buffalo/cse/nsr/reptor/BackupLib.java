@@ -11,6 +11,7 @@ public class BackupLib {
 	private static final String FILES_DIR = "/files/";
 	private static final String PREF_DIR = "/shared_prefs/";
 	private static final String BACKUP_DIR = "/cse622_backup/";
+	private static final String DB_DIR = "/database/";
 	///////////////////////////////////////////////////////////////////////////
 	//////////////////////////////// FILES ////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
@@ -111,9 +112,16 @@ public class BackupLib {
 		}
 	}
 	///////////////////////////////////////////////////////////////////////////
-	//////////////////////////// SHARED PREFS /////////////////////////////////
+	//////////////////////////// DATABASES /////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
-	public static void databaseBackup() {
+	public static void databaseBackup(String packageName) {
+		try {
+			String source = DATA_PATH + packageName + DB_DIR;
+			String dest = getExternalStoragePath() + BACKUP_DIR + packageName + DB_DIR;
+			copyDirectory(new File(source), new File(dest));
+		} catch (Exception e) {
+			System.out.println("ERROR in saving DB: " + e.getMessage());
+		}
 	}
 	public static void databaseRestore() {
 	}

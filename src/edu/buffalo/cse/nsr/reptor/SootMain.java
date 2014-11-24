@@ -15,7 +15,7 @@ import soot.Transform;
 public class SootMain {
 
 	public static void main(String[] args) {
- 
+		System.setProperty("java.home", "C:\\Program Files\\Java\\jdk1.7.0_40");
 		Settings.initialiseSoot();
 		PackManager.v().getPack("wjtp").add(new Transform("wjtp.InstrumenterRecorder", new RecorderTransformer()));
 		PackManager.v().runPacks();
