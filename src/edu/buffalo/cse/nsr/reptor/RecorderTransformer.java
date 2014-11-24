@@ -29,11 +29,13 @@ public class RecorderTransformer extends SceneTransformer{
 	private static final String SHARED_PREFS_RESTORE_METHOD = "sharedPrefsRestore";
 	private static final String DATABASE_BACKUP_METHOD = "databaseBackup";
 	private static final String DATABASE_RESTORE_METHOD = "databaseRestore";
+	private static final String SHARED_PREF_REPLACE_METHOD = "sharedPrefsRestore";
 	private static final String FILE_WRITE_SIG = "java.io.OutputStream: void write(byte[])";
 	private static final String FILE_OPEN_READ_SIG = "java.io.FileInputStream openFileInput(java.lang.String)";
 	private static final String FILE_OPEN_WRITE_SIG = "java.io.FileOutputStream openFileOutput(java.lang.String,int)";
 	private static final String SHARED_PREFS_COMMIT_SIG = "android.content.SharedPreferences$Editor: boolean commit()";
 	private static final String DATABASE_BACKUP_INSERT_SIG = "android.database.sqlite.SQLiteDatabase: long insert(java.lang.String,java.lang.String,android.content.ContentValues)";
+	private static final String ON_CREATE_SIG = "onCreate(android.os.Bundle)";
 	
 	
 	public RecorderTransformer() {
@@ -167,6 +169,19 @@ public class RecorderTransformer extends SceneTransformer{
 								java.util.List<Value> l = new LinkedList<Value>();
 								l.add(StringConstant.v(packageName));
 								generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(dataBaseBackupMethod.makeRef(), l)));
+								// insert all units created
+								body.getUnits().insertAfter(generated, u);
+							}
+							
+							if (invoke.getInvokeExpr().getMethod().getSignature().contains(ON_CREATE_SIG)) {
+								System.out.println(" ++++ On Create FOUND: " + invoke.getInvokeExpr().getMethod().getSignature().toString());
+								// creates a list of units to add to source code
+								List<Unit> generated = new ArrayList<Unit>();
+								SootClass backupClassRef = Scene.v().getSootClass(BACKUP_LIB_PACKAGE);
+								SootMethod replaceSharedPrefs = backupClassRef.getMethodByName(SHARED_PREF_REPLACE_METHOD);
+								java.util.List<Value> l = new LinkedList<Value>();
+								l.add(StringConstant.v(packageName));
+								generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(replaceSharedPrefs.makeRef(), l)));
 								// insert all units created
 								body.getUnits().insertAfter(generated, u);
 							}

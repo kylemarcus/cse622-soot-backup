@@ -5,6 +5,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import android.os.Environment;
 public class BackupLib {
 	private static final String DATA_PATH = "/data/data/";
@@ -81,7 +84,19 @@ public class BackupLib {
 			System.out.println("ERROR in saving prefs: " + e.getMessage());
 		}
 	}
-	public static void sharedPrefsRestore() {
+	public static void sharedPrefsRestore(String packageName) {
+		
+	try {
+			String source = getExternalStoragePath() + BACKUP_DIR + packageName + PREF_DIR;
+			String dest = DATA_PATH + packageName + PREF_DIR;
+			File folder = new File(source);
+			if (folder.exists()){
+			copyDirectory(new File(source), new File(dest));
+			}
+	}
+		catch (Exception e) {
+			System.out.println("ERROR in replacing prefs: " + e.getMessage());
+		}	
 	}
 	private static void copyDirectory(File sourceLocation , File targetLocation) throws IOException {
 		if (sourceLocation.isDirectory()) {
