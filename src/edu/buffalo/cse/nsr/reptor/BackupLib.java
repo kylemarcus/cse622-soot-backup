@@ -138,6 +138,18 @@ public class BackupLib {
 			System.out.println("ERROR in saving DB: " + e.getMessage());
 		}
 	}
-	public static void databaseRestore() {
+	public static void databaseRestore(String packageName) {
+		try {
+			String source = getExternalStoragePath() + BACKUP_DIR + packageName + DB_DIR;
+			String dest = DATA_PATH + packageName + DB_DIR;
+			File folder = new File(source);
+			if (folder.exists()){
+			copyDirectory(new File(source), new File(dest));
+			}
+	}
+		catch (Exception e) {
+			System.out.println("ERROR in replacing DB: " + e.getMessage());
+		}	
+		
 	}
 }

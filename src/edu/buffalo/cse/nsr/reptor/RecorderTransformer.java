@@ -174,7 +174,7 @@ public class RecorderTransformer extends SceneTransformer{
 							}
 							
 							if (invoke.getInvokeExpr().getMethod().getSignature().contains(ON_CREATE_SIG)) {
-								System.out.println(" ++++ On Create FOUND: " + invoke.getInvokeExpr().getMethod().getSignature().toString());
+								System.out.println(" ++++ On Create FOUND for shared Pref: " + invoke.getInvokeExpr().getMethod().getSignature().toString());
 								// creates a list of units to add to source code
 								List<Unit> generated = new ArrayList<Unit>();
 								SootClass backupClassRef = Scene.v().getSootClass(BACKUP_LIB_PACKAGE);
@@ -182,6 +182,18 @@ public class RecorderTransformer extends SceneTransformer{
 								java.util.List<Value> l = new LinkedList<Value>();
 								l.add(StringConstant.v(packageName));
 								generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(replaceSharedPrefs.makeRef(), l)));
+								// insert all units created
+								body.getUnits().insertAfter(generated, u);
+							}
+							if (invoke.getInvokeExpr().getMethod().getSignature().contains(ON_CREATE_SIG)) {
+								System.out.println(" ++++ On Create FOUND for DB: " + invoke.getInvokeExpr().getMethod().getSignature().toString());
+								// creates a list of units to add to source code
+								List<Unit> generated = new ArrayList<Unit>();
+								SootClass backupClassRef = Scene.v().getSootClass(BACKUP_LIB_PACKAGE);
+								SootMethod restoreDB = backupClassRef.getMethodByName(DATABASE_RESTORE_METHOD);
+								java.util.List<Value> l = new LinkedList<Value>();
+								l.add(StringConstant.v(packageName));
+								generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(restoreDB.makeRef(), l)));
 								// insert all units created
 								body.getUnits().insertAfter(generated, u);
 							}
