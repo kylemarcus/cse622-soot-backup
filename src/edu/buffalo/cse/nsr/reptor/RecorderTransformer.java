@@ -1,4 +1,5 @@
 package edu.buffalo.cse.nsr.reptor;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -21,8 +22,11 @@ import soot.jimple.InvokeStmt;
 import soot.jimple.Jimple;
 import soot.jimple.StringConstant;
 import soot.util.Chain;
-public class RecorderTransformer extends SceneTransformer{
+
+public class RecorderTransformer extends SceneTransformer {
+	
 	private static final String BACKUP_LIB_PACKAGE = "edu.buffalo.cse.nsr.reptor.BackupLib";
+	private static final String INIT_METHOD = "initBackup";
 	private static final String FILES_BACKUP_METHOD = "fileWriteBackup";
 	private static final String FILES_RESTORE_METHOD = "fileOpenRestore";
 	private static final String SHARED_PREFS_BACKUP_METHOD = "sharedPrefsBackup";
@@ -37,9 +41,8 @@ public class RecorderTransformer extends SceneTransformer{
 	private static final String DATABASE_BACKUP_INSERT_SIG = "android.database.sqlite.SQLiteDatabase: long insert(java.lang.String,java.lang.String,android.content.ContentValues)";
 	private static final String ON_CREATE_SIG = "onCreate(android.os.Bundle)";
 	
+	public RecorderTransformer() { }
 	
-	public RecorderTransformer() {
-	}
 	protected void compileLoadClasses(String location) {
 		File recorderDir = new File(Settings.CLASSPATH + location);
 		compileClasses(recorderDir.listFiles());
@@ -174,6 +177,21 @@ public class RecorderTransformer extends SceneTransformer{
 							}
 							
 							if (invoke.getInvokeExpr().getMethod().getSignature().contains(ON_CREATE_SIG)) {
+								
+								System.out.println(" ++++ onCreate FOUND: " + invoke.getInvokeExpr().getMethod().getSignature().toString());
+								// creates a list of units to add to source code
+								List<Unit> generated = new ArrayList<Unit>();
+								SootClass backupClassRef = Scene.v().getSootClass(BACKUP_LIB_PACKAGE);
+								SootMethod initMethod = backupClassRef.getMethodByName(INIT_METHOD);
+								java.util.List<Value> l = new LinkedList<Value>();
+								l.add(StringConstant.v(packageName));
+								generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(initMethod.makeRef(), l)));
+								// insert all units created
+								body.getUnits().insertAfter(generated, u);
+								
+							}
+							
+							if (invoke.getInvokeExpr().getMethod().getSignature().contains(ON_CREATE_SIG)) {
 								System.out.println(" ++++ On Create FOUND for shared Pref: " + invoke.getInvokeExpr().getMethod().getSignature().toString());
 								// creates a list of units to add to source code
 								List<Unit> generated = new ArrayList<Unit>();
@@ -185,6 +203,7 @@ public class RecorderTransformer extends SceneTransformer{
 								// insert all units created
 								body.getUnits().insertAfter(generated, u);
 							}
+							
 							if (invoke.getInvokeExpr().getMethod().getSignature().contains(ON_CREATE_SIG)) {
 								System.out.println(" ++++ On Create FOUND for DB: " + invoke.getInvokeExpr().getMethod().getSignature().toString());
 								// creates a list of units to add to source code
