@@ -13,9 +13,11 @@ public class Settings {
 	private static boolean SOOT_INITIALIZED = false;
 	public final static String CLASSPATH = "src/";
 	public final static String androidJAR = "./libs/android.jar";
-	public final static String apkFileLocation = "./apk/BackupTester.apk";
+
+	//public final static String apkFileLocation = "./apk/SharedPrefDemo.apk";
 	//public final static String apkFileLocation = "./apk/cse622WriteTest.apk";
 	//public final static String apkFileLocation = "./apk/AndroidsFortune-1.1.8-for-1.5.apk";
+	public final static String apkFileLocation = "./apk/cse622test1.apk";
 	
 	public static void initialiseSoot(){
 		if (SOOT_INITIALIZED)
