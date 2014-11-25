@@ -23,7 +23,7 @@ public class BackupLib {
 	private static final String FILES_DIR = "/files/";
 	private static final String PREF_DIR = "/shared_prefs/";
 	private static final String BACKUP_DIR = "/cse622_backup/";
-	private static final String DB_DIR = "/database/";
+	private static final String DB_DIR = "/databases/";
 	private static final String BACKUP_MANAGER = "com.example.backupmanager";
 	
 	private HandlerThread handlerThread;
@@ -99,7 +99,7 @@ public class BackupLib {
 	//////////////////////////////// INIT /////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
 	
-	public static void initBackup() {
+	public static void initBackup(String packageName) {
 		
 	}
 	
