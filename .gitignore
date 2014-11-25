@@ -12,6 +12,7 @@ local.properties
 .loadpath
 sootOutput/
 *.class
+.classpath
 
 # External tool builders
 .externalToolBuilders/
