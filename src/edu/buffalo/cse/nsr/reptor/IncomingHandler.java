@@ -22,16 +22,23 @@ class IncomingHandler extends Handler {
         case BackupGlobals.REMOTE_READ_DONE:
             Log.d("TEST", "READ completed");
             errorCode = 0;
-            synchronized (this) {
-            	notify();
+            //synchronized (this) {
+            //	notify();
+			//}
+            synchronized (BackupGlobals.mutex) {
+				BackupGlobals.mutex.notify();
 			}
             break;
         case BackupGlobals.REMOTE_READ_FAILED:
             Log.d("TEST", "READ failed");
             errorCode = 404;
-            synchronized (this) {
+//            synchronized (this) {
+//            	Log.d("TEST", "NOTIFYING FAILURE");
+//            	notify();
+//			}
+            synchronized (BackupGlobals.mutex) {
             	Log.d("TEST", "NOTIFYING FAILURE");
-            	notify();
+				BackupGlobals.mutex.notify();
 			}
             break;
         case BackupGlobals.REMOTE_WRITE_DONE:

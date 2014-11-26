@@ -38,9 +38,10 @@ public class BackupLib {
 	private static MyServiceConnection myConnection;
 	private static Context mCtx;
 	
-	public BackupLib(Context ctx) {
+	public BackupLib(Context ctx, String packageName) {
+		Log.d("DBG", "BACKUPLIB INITED");
 		mCtx = ctx;
-		myConnection = new MyServiceConnection();
+		myConnection = new MyServiceConnection(packageName);
 		handlerThread = new HandlerThread("IPChandlerThread");
         handlerThread.start();
         handler = new IncomingHandler(handlerThread);
@@ -48,7 +49,21 @@ public class BackupLib {
 
         Intent intent = new Intent(BACKUP_MANAGER);
         
-	    mCtx.bindService(intent, myConnection , Context.BIND_AUTO_CREATE);
+	    boolean ret = mCtx.bindService(intent, myConnection, 0);//Context.BIND_AUTO_CREATE);
+	    
+	    Log.d("DGB", "BindService returned " + ret);
+	    
+	    
+	    //while (!myConnection.isBound) {
+			try {
+	    	Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+	    //}
+	    
+	   // sharedPrefsRestore(packageName);
+	    
 	}
 	
 	public static void upload(String filename) {
@@ -65,8 +80,11 @@ public class BackupLib {
    		sendMessage(bundle, BackupGlobals.REMOTE_READ);
    		try {
    			Log.d("TEST", "Wating for read to complete");
-			synchronized (handler) {
-				handler.wait();
+			//synchronized (handler) {
+			//	handler.wait();
+			//}
+   			synchronized (BackupGlobals.mutex) {
+				BackupGlobals.mutex.wait();
 			}
 
 			Log.d("TEST", "read completed");
@@ -84,6 +102,9 @@ public class BackupLib {
    }
 	
 	private static void sendMessage(Bundle bundle, int msg_type) {
+		if (myConnection == null) {
+			Log.d("ERROR", "myConnection is NULL");
+		}
 		if (!myConnection.isBound()) {
 			Log.d("ERROR", "STILL NOT INIT'ed");
 			return;
@@ -203,22 +224,28 @@ public class BackupLib {
 			String metaName = packageName + "metadata.txt";
 			String backupCache = getExternalStoragePath() + "/backup_cache/";
 			String metaPath = backupCache + metaName;
-			download(metaName);
-			File metaData = new File(metaPath);
-			BufferedReader br = new BufferedReader(new FileReader(metaData));
-			String line;
-			
-			while((line = br.readLine())!= null){
-				download(line);
-				int len = packageName.length();
-				 String newName = line.substring(len);
-				 //File newFile = new File(newName);
-				 //File oldFile = new File(line);
-				 //oldFile.renameTo(newFile);
-				copyDirectory(new File(backupCache, line), new File(dest, newName));
+			int ret = download(metaName);
+			if (ret != 0) {
+				File metaData = new File(metaPath);
+				BufferedReader br = new BufferedReader(new FileReader(metaData));
+				String line;
+
+				while((line = br.readLine())!= null){
+					download(line);
+					int len = packageName.length();
+					String newName = line.substring(len);
+					//File newFile = new File(newName);
+					//File oldFile = new File(line);
+					//oldFile.renameTo(newFile);
+					copyDirectory(new File(backupCache, line), new File(dest, newName));
+				}
+				br.close();
+			} else {
+				Log.d("INSTRUMENT", "FILE NOT FOUND");
 			}
 		}
 		catch (Exception e) {
+			e.printStackTrace();
 			System.out.println("ERROR in replacing prefs: " + e.getMessage());
 		}	
 	}

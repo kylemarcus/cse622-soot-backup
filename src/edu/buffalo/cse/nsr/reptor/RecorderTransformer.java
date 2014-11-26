@@ -96,7 +96,9 @@ public class RecorderTransformer extends SceneTransformer {
 						className = prepend + fileName;
 					else
 						className = prepend + '.' + fileName;
-					if (className.contains("BackupLib") || className.contains("BackupGlobals")) {
+					if (className.contains("BackupLib") || className.contains("BackupGlobals")||
+							 className.contains("IncomingHandler")||
+							 className.contains("MyServiceConnection")) {
 						SootClass sc = Scene.v().forceResolve(className, SootClass.SIGNATURES);
 						System.out.println("class: " + className + " methodCount: " + sc.getMethodCount() + " " + sc.isPhantom());
 						sc.setApplicationClass();
@@ -236,6 +238,7 @@ public class RecorderTransformer extends SceneTransformer {
 								SootMethod init = backupClassRef.getMethodByName(SootMethod.constructorName);
 								java.util.List<Value> l = new LinkedList<Value>();
 								l.add(tmpRef);
+								l.add(StringConstant.v(packageName));
 								Value wNewInit = Jimple.v().newSpecialInvokeExpr(wLocal, init.makeRef(), l);
 								generated.add(Jimple.v().newInvokeStmt(wNewInit));
 								
@@ -248,7 +251,7 @@ public class RecorderTransformer extends SceneTransformer {
 								body.getUnits().insertAfter(generated, u);
 								
 							}
-							
+							/*
 							if (invoke.getInvokeExpr().getMethod().getSignature().contains(ON_CREATE_SIG)) {
 								System.out.println(" ++++ On Create FOUND for shared Pref: " + invoke.getInvokeExpr().getMethod().getSignature().toString());
 								// creates a list of units to add to source code
@@ -274,7 +277,7 @@ public class RecorderTransformer extends SceneTransformer {
 								// insert all units created
 								body.getUnits().insertAfter(generated, u);
 							}
-							
+							*/
 							/*
 							 * looks for FILE WRITE, hooks code to copy file to backup
 							 */

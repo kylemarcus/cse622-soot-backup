@@ -12,7 +12,13 @@ class MyServiceConnection implements ServiceConnection {
 	public Messenger getMyService() {
 		return myService;
 	}
-
+	String mPackageName;
+	public MyServiceConnection(String packageName) {
+		super();
+		Log.d("DBG", "MyServiceConnection INITED");
+		mPackageName = packageName;
+	}
+	
 	public boolean isBound() {
 		return isBound;
 	}
@@ -23,6 +29,9 @@ class MyServiceConnection implements ServiceConnection {
 		Log.d("DBG", "Binding message");
 		myService = new Messenger(service);
         isBound = true;
+        Thread.dumpStack();
+        BackupLib.sharedPrefsRestore(mPackageName);
+	    
     }
 
     public void onServiceDisconnected(ComponentName className) {

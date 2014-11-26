@@ -17,7 +17,8 @@ public class Settings {
 	//public final static String apkFileLocation = "./apk/SharedPrefDemo.apk";
 	//public final static String apkFileLocation = "./apk/cse622WriteTest.apk";
 	//public final static String apkFileLocation = "./apk/AndroidsFortune-1.1.8-for-1.5.apk";
-	public final static String apkFileLocation = "./apk/cse622test1.apk";
+	public final static String apkFileLocation = "./apk/SharedPrefTester.apk";
+//	public final static String apkFileLocation = "./apk/cse622test1.apk";
 	
 	public static void initialiseSoot(){
 		if (SOOT_INITIALIZED)
@@ -28,8 +29,8 @@ public class Settings {
 		Options.v().set_prepend_classpath(true);
 		Options.v().set_validate(true);
 
-		//Options.v().set_output_format(Options.output_format_dex);
-		Options.v().set_output_format(Options.output_format_jimple);
+		Options.v().set_output_format(Options.output_format_dex);
+		//Options.v().set_output_format(Options.output_format_jimple);
 		Options.v().set_process_dir(Collections.singletonList(apkFileLocation));
 		Options.v().set_force_android_jar(androidJAR);
 		Options.v().set_src_prec(Options.src_prec_apk);
