@@ -1,11 +1,17 @@
 package edu.buffalo.cse.nsr.reptor;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.Writer;
 
 import android.content.Context;
 import android.content.Intent;
@@ -26,11 +32,11 @@ public class BackupLib {
 	private static final String DB_DIR = "/databases/";
 	private static final String BACKUP_MANAGER = "com.example.backupmanager";
 	
-	private HandlerThread handlerThread;
-	private IncomingHandler handler;
-	private Messenger mClientMessenger;
-	private MyServiceConnection myConnection;
-	private Context mCtx;
+	private static HandlerThread handlerThread;
+	private static IncomingHandler handler;
+	private static Messenger mClientMessenger;
+	private static MyServiceConnection myConnection;
+	private static Context mCtx;
 	
 	public BackupLib(Context ctx) {
 		mCtx = ctx;
@@ -45,14 +51,14 @@ public class BackupLib {
 	    mCtx.bindService(intent, myConnection , Context.BIND_AUTO_CREATE);
 	}
 	
-	public void upload(String filename) {
+	public static void upload(String filename) {
 		//TODO: Before calling this code, the file has to be copied into SD card
 		Bundle bundle = new Bundle();
         bundle.putString("filename", filename);
     	sendMessage(bundle, BackupGlobals.REMOTE_WRITE); // 0 - READ, 1 - WRITE
 	}
 	
-	public int download(String filename) {
+	public static int download(String filename) {
 		Log.d("TEST", "File not found in SD card, downloading from dropbox");
 		Bundle bundle = new Bundle();
         bundle.putString("filename", filename);
@@ -77,7 +83,7 @@ public class BackupLib {
    		return 0;
    }
 	
-	private void sendMessage(Bundle bundle, int msg_type) {
+	private static void sendMessage(Bundle bundle, int msg_type) {
 		if (!myConnection.isBound()) {
 			Log.d("ERROR", "STILL NOT INIT'ed");
 			return;
@@ -166,8 +172,25 @@ public class BackupLib {
 	public static void sharedPrefsBackup(String packageName) {
 		try {
 			String source = DATA_PATH + packageName + PREF_DIR;
-			String dest = getExternalStoragePath() + BACKUP_DIR + packageName + PREF_DIR;
-			copyDirectory(new File(source), new File(dest));
+			//String dest = getExternalStoragePath() + BACKUP_DIR + packageName + PREF_DIR;
+			String backupCache = getExternalStoragePath() + "/backup_cache/";
+			String metaName = packageName + "metadata.txt";
+			String metaPath = backupCache + metaName;
+			//copyDirectory(new File(source), new File(backupCache));
+			File metadata = new File(metaPath);
+			String[] children = new File(source).list();
+			Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(metadata), "utf-8"));
+			for (int i=0; i<children.length; i++) {
+				 String newName = packageName + children[i];
+				// File newFile = new File(newName);
+				// File oldFile = new File(children[i]);
+				// oldFile.renameTo(newFile);
+				 copyDirectory(new File(source, children[i]),new File(backupCache, newName));
+				 upload(newName);
+				 writer.write(newName + '\n');
+			}
+			writer.close();
+			upload(metaName);
 		} catch (Exception e) {
 			System.out.println("ERROR in saving prefs: " + e.getMessage());
 		}
@@ -175,13 +198,26 @@ public class BackupLib {
 	public static void sharedPrefsRestore(String packageName) {
 		
 	try {
-			String source = getExternalStoragePath() + BACKUP_DIR + packageName + PREF_DIR;
+			//String source = getExternalStoragePath() + BACKUP_DIR + packageName + PREF_DIR;
 			String dest = DATA_PATH + packageName + PREF_DIR;
-			File folder = new File(source);
-			if (folder.exists()){
-			copyDirectory(new File(source), new File(dest));
+			String metaName = packageName + "metadata.txt";
+			String backupCache = getExternalStoragePath() + "/backup_cache/";
+			String metaPath = backupCache + metaName;
+			download(metaName);
+			File metaData = new File(metaPath);
+			BufferedReader br = new BufferedReader(new FileReader(metaData));
+			String line;
+			
+			while((line = br.readLine())!= null){
+				download(line);
+				int len = packageName.length();
+				 String newName = line.substring(len);
+				 //File newFile = new File(newName);
+				 //File oldFile = new File(line);
+				 //oldFile.renameTo(newFile);
+				copyDirectory(new File(backupCache, line), new File(dest, newName));
 			}
-	}
+		}
 		catch (Exception e) {
 			System.out.println("ERROR in replacing prefs: " + e.getMessage());
 		}	
