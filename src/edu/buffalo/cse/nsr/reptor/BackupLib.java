@@ -137,8 +137,21 @@ public class BackupLib {
 	 * Copy file from backup dir to local dir
 	 */
 	public static void fileOpenRestore(String fileName, String packageName) {
-		File f = new File(DATA_PATH + packageName + FILES_DIR + fileName);
+		String fn = DATA_PATH + packageName + FILES_DIR + fileName;
+		File f = new File(fn);
 		if (!f.exists()) {
+			int rc = download(fileName);
+			if (rc == 0) {
+				// file found, copy to storage
+				try {
+					String dlfile = getExternalFilesDir(packageName) + "/" + fileName;
+					Process p = Runtime.getRuntime().exec("cp " + dlfile + " " + fn);
+					p.waitFor();
+				}
+				catch (Exception e) {
+					System.out.println("ERROR: Cound not download file: " + e.getMessage());
+				}
+			}
 			// file does not exist so ask backup service for it using a intent?
 			// call backup service, send it fileName and packageName
 			// copy file from ext storage to local storage
@@ -155,6 +168,7 @@ public class BackupLib {
 			String toFile = getExternalFilesDir(packageName) + "/" + fileName;
 			Process p = Runtime.getRuntime().exec("cp " + fromFile + " " + toFile);
 			p.waitFor();
+			upload(fileName);
 			if (p.exitValue() != 0) {
 				throw new Exception("ERROR: Copy failed from file " + fromFile + " to " + toFile);
 			}
@@ -168,7 +182,7 @@ public class BackupLib {
 	private static String getExternalFilesDir(String packageName) throws Exception {
 		String extStorage = getExternalStoragePath();
 		// We can read and write the media
-		File folder = new File(extStorage + BACKUP_DIR + packageName + FILES_DIR);
+		File folder = new File(extStorage + BACKUP_DIR + packageName);
 		if (!folder.exists()) {
 			if (folder.mkdirs()) {
 				return folder.getAbsolutePath();
