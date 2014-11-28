@@ -30,7 +30,7 @@ class MyServiceConnection implements ServiceConnection {
 		myService = new Messenger(service);
         isBound = true;
         Thread.dumpStack();
-        BackupLib.sharedPrefsRestore(mPackageName);
+        //BackupLib.sharedPrefsRestore(mPackageName);
 	    
     }
 

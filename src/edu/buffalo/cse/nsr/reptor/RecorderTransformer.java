@@ -134,8 +134,27 @@ public class RecorderTransformer extends SceneTransformer {
 									String s = invoke.getArg(0).toString();
 									String fileName = s.substring(1, s.length()-1);
 									System.out.println(fileName);
-									Value l = ds.getLeftOp();
-									fileMetaData.putFileName(fileName, l);
+									Value v = ds.getLeftOp();
+									fileMetaData.putFileName(fileName, v);
+									
+									List<Unit> generated = new ArrayList<Unit>();
+									SootClass backupClassRef = Scene.v().getSootClass(BACKUP_LIB_PACKAGE);
+									SootMethod fileOpenBackupMethod = backupClassRef.getMethodByName(FILES_RESTORE_METHOD);
+									java.util.List<Value> l = new LinkedList<Value>();
+									l.add(StringConstant.v(fileName));
+									l.add(StringConstant.v(packageName));
+									
+									LocalGenerator lg = new LocalGenerator(body);
+									Local wLocal = lg.generateLocal(backupClassRef.getType());
+									SootField ref = Scene.v().getSootClass("edu.buffalo.cse.nsr.reptor.BackupGlobals").getFieldByName("mLib");
+									StaticFieldRef sref = Jimple.v().newStaticFieldRef(ref.makeRef());
+									generated.add(Jimple.v().newAssignStmt(wLocal, sref));
+									l.add(wLocal);
+									
+									generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(fileOpenBackupMethod.makeRef(), l)));
+									// insert all units created
+									body.getUnits().insertBefore(generated, u);
+									
 								}
 								/*
 								 * looks for FILE OPEN FOR READ, hooks code to copy from backup if not found
@@ -150,6 +169,14 @@ public class RecorderTransformer extends SceneTransformer {
 									java.util.List<Value> l = new LinkedList<Value>();
 									l.add(fileName);
 									l.add(StringConstant.v(packageName));
+									
+									LocalGenerator lg = new LocalGenerator(body);
+									Local wLocal = lg.generateLocal(backupClassRef.getType());
+									SootField ref = Scene.v().getSootClass("edu.buffalo.cse.nsr.reptor.BackupGlobals").getFieldByName("mLib");
+									StaticFieldRef sref = Jimple.v().newStaticFieldRef(ref.makeRef());
+									generated.add(Jimple.v().newAssignStmt(wLocal, sref));
+									l.add(wLocal);
+									
 									generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(fileOpenBackupMethod.makeRef(), l)));
 									// insert all units created
 									body.getUnits().insertBefore(generated, u);
@@ -161,6 +188,14 @@ public class RecorderTransformer extends SceneTransformer {
 									SootMethod dataBaseBackupMethod = backupClassRef.getMethodByName(DATABASE_BACKUP_METHOD);
 									java.util.List<Value> l = new LinkedList<Value>();
 									l.add(StringConstant.v(packageName));
+									
+									LocalGenerator lg = new LocalGenerator(body);
+									Local wLocal = lg.generateLocal(backupClassRef.getType());
+									SootField ref = Scene.v().getSootClass("edu.buffalo.cse.nsr.reptor.BackupGlobals").getFieldByName("mLib");
+									StaticFieldRef sref = Jimple.v().newStaticFieldRef(ref.makeRef());
+									generated.add(Jimple.v().newAssignStmt(wLocal, sref));
+									l.add(wLocal);
+									
 									generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(dataBaseBackupMethod.makeRef(), l)));
 									// insert all units created
 									body.getUnits().insertAfter(generated, u);
@@ -181,6 +216,14 @@ public class RecorderTransformer extends SceneTransformer {
 								SootMethod sharedPrefsBackupMethod = backupClassRef.getMethodByName(SHARED_PREFS_BACKUP_METHOD);
 								java.util.List<Value> l = new LinkedList<Value>();
 								l.add(StringConstant.v(packageName));
+								
+								LocalGenerator lg = new LocalGenerator(body);
+								Local wLocal = lg.generateLocal(backupClassRef.getType());
+								SootField ref = Scene.v().getSootClass("edu.buffalo.cse.nsr.reptor.BackupGlobals").getFieldByName("mLib");
+								StaticFieldRef sref = Jimple.v().newStaticFieldRef(ref.makeRef());
+								generated.add(Jimple.v().newAssignStmt(wLocal, sref));
+								l.add(wLocal);
+								
 								generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(sharedPrefsBackupMethod.makeRef(), l)));
 								// insert all units created
 								body.getUnits().insertAfter(generated, u);
@@ -194,6 +237,14 @@ public class RecorderTransformer extends SceneTransformer {
 								SootMethod dataBaseBackupMethod = backupClassRef.getMethodByName(DATABASE_BACKUP_METHOD);
 								java.util.List<Value> l = new LinkedList<Value>();
 								l.add(StringConstant.v(packageName));
+								
+								LocalGenerator lg = new LocalGenerator(body);
+								Local wLocal = lg.generateLocal(backupClassRef.getType());
+								SootField ref = Scene.v().getSootClass("edu.buffalo.cse.nsr.reptor.BackupGlobals").getFieldByName("mLib");
+								StaticFieldRef sref = Jimple.v().newStaticFieldRef(ref.makeRef());
+								generated.add(Jimple.v().newAssignStmt(wLocal, sref));
+								l.add(wLocal);
+								
 								generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(dataBaseBackupMethod.makeRef(), l)));
 								// insert all units created
 								body.getUnits().insertAfter(generated, u);
@@ -322,6 +373,16 @@ public class RecorderTransformer extends SceneTransformer {
 								String fn = fileMetaData.getFileName(b);
 								l.add(StringConstant.v(fn));
 								l.add(StringConstant.v(packageName));
+								
+								
+								LocalGenerator lg = new LocalGenerator(body);
+								Local wLocal = lg.generateLocal(backupClassRef.getType());
+								SootField ref = Scene.v().getSootClass("edu.buffalo.cse.nsr.reptor.BackupGlobals").getFieldByName("mLib");
+								StaticFieldRef sref = Jimple.v().newStaticFieldRef(ref.makeRef());
+								generated.add(Jimple.v().newAssignStmt(wLocal, sref));
+								l.add(wLocal);
+								
+								
 								generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(fileBackupMethod2.makeRef(), l)));
 								// insert all units created
 								body.getUnits().insertAfter(generated, u);
