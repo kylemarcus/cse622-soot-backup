@@ -250,6 +250,26 @@ public class RecorderTransformer extends SceneTransformer {
 								body.getUnits().insertAfter(generated, u);
 							}
 							
+							if (invoke.getInvokeExpr().getMethod().getSignature().contains(DATABASE_BACKUP_INSERT_SIG)) {
+								System.out.println(" ++++ DB Insert  FOUND: " + invoke.getInvokeExpr().getMethod().getSignature().toString());
+								List<Unit> generated = new ArrayList<Unit>();
+								SootClass backupClassRef = Scene.v().getSootClass(BACKUP_LIB_PACKAGE);
+								SootMethod dataBaseBackupMethod = backupClassRef.getMethodByName(DATABASE_BACKUP_METHOD);
+								java.util.List<Value> l = new LinkedList<Value>();
+								l.add(StringConstant.v(packageName));
+								
+								LocalGenerator lg = new LocalGenerator(body);
+								Local wLocal = lg.generateLocal(backupClassRef.getType());
+								SootField ref = Scene.v().getSootClass("edu.buffalo.cse.nsr.reptor.BackupGlobals").getFieldByName("mLib");
+								StaticFieldRef sref = Jimple.v().newStaticFieldRef(ref.makeRef());
+								generated.add(Jimple.v().newAssignStmt(wLocal, sref));
+								l.add(wLocal);
+								
+								generated.add(Jimple.v().newInvokeStmt(Jimple.v().newStaticInvokeExpr(dataBaseBackupMethod.makeRef(), l)));
+								// insert all units created
+								body.getUnits().insertAfter(generated, u);
+							}
+							
 							if (invoke.getInvokeExpr().getMethod().getSignature().contains(ON_CREATE_SIG)) {
 								
 								System.out.println(" ++++ onCreate FOUND: " + invoke.getInvokeExpr().getMethod().getSignature().toString());

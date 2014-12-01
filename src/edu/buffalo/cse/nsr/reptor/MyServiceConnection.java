@@ -7,16 +7,21 @@ import android.os.Messenger;
 import android.util.Log;
 
 class MyServiceConnection implements ServiceConnection {
+	
 	Messenger myService;
 	boolean isBound;
+	String mPackageName;
+	private BackupLib backupLib;
+	
 	public Messenger getMyService() {
 		return myService;
 	}
-	String mPackageName;
-	public MyServiceConnection(String packageName) {
+	
+	public MyServiceConnection(String packageName, BackupLib bl) {
 		super();
 		Log.d("DBG", "MyServiceConnection INITED");
 		mPackageName = packageName;
+		backupLib = bl;
 	}
 	
 	public boolean isBound() {
@@ -30,7 +35,8 @@ class MyServiceConnection implements ServiceConnection {
 		myService = new Messenger(service);
         isBound = true;
         Thread.dumpStack();
-        //BackupLib.sharedPrefsRestore(mPackageName);
+        BackupLib.sharedPrefsRestore(mPackageName, backupLib);
+        BackupLib.databaseRestore(mPackageName, backupLib);
 	    
     }
 

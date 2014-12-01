@@ -42,7 +42,7 @@ public class BackupLib {
 
 		Log.d("DBG", "BACKUPLIB INITED");
 		mCtx = ctx;
-		myConnection = new MyServiceConnection(packageName);
+		myConnection = new MyServiceConnection(packageName, this);
 		handlerThread = new HandlerThread("IPChandlerThread");
         handlerThread.start();
         handler = new IncomingHandler(handlerThread);
@@ -142,16 +142,14 @@ public class BackupLib {
 				// file found, copy to storage
 				try {
 					String dlfile = getExternalFilesDir(packageName) + "/" + fileName;
-					Process p = Runtime.getRuntime().exec("cp " + dlfile + " " + fn);
-					p.waitFor();
+					//Process p = Runtime.getRuntime().exec("mv " + dlfile + " " + fn);
+					//p.waitFor();
+					copyDirectory(new File(dlfile), new File(fn));
 				}
 				catch (Exception e) {
 					System.out.println("ERROR: Cound not download file: " + e.getMessage());
 				}
 			}
-			// file does not exist so ask backup service for it using a intent?
-			// call backup service, send it fileName and packageName
-			// copy file from ext storage to local storage
 		}
 	}
 	/*
@@ -206,7 +204,7 @@ public class BackupLib {
 		try {
 			String source = DATA_PATH + packageName + PREF_DIR;
 			//String dest = getExternalStoragePath() + BACKUP_DIR + packageName + PREF_DIR;
-			String backupCache = getExternalStoragePath() + "/backup_cache/";
+			String backupCache = getExternalStoragePath() + BACKUP_DIR;
 			String metaName = packageName + "metadata.txt";
 			String metaPath = backupCache + metaName;
 			//copyDirectory(new File(source), new File(backupCache));
@@ -230,14 +228,14 @@ public class BackupLib {
 	}
 	public static void sharedPrefsRestore(String packageName, BackupLib bl) {
 		
-	try {
+		try {
 			//String source = getExternalStoragePath() + BACKUP_DIR + packageName + PREF_DIR;
 			String dest = DATA_PATH + packageName + PREF_DIR;
 			String metaName = packageName + "metadata.txt";
-			String backupCache = getExternalStoragePath() + "/backup_cache/";
+			String backupCache = getExternalStoragePath() + BACKUP_DIR;
 			String metaPath = backupCache + metaName;
 			int ret = bl.download(metaName);
-			if (ret != 0) {
+			if (ret == 0) {
 				File metaData = new File(metaPath);
 				BufferedReader br = new BufferedReader(new FileReader(metaData));
 				String line;
@@ -293,26 +291,67 @@ public class BackupLib {
 	//////////////////////////// DATABASES /////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
 	public static void databaseBackup(String packageName, BackupLib bl) {
+		
 		try {
 			String source = DATA_PATH + packageName + DB_DIR;
-			String dest = getExternalStoragePath() + BACKUP_DIR + packageName + DB_DIR;
-			copyDirectory(new File(source), new File(dest));
-		} catch (Exception e) {
-			System.out.println("ERROR in saving DB: " + e.getMessage());
-		}
-	}
-	public static void databaseRestore(String packageName, BackupLib bl) {
-		try {
-			String source = getExternalStoragePath() + BACKUP_DIR + packageName + DB_DIR;
-			String dest = DATA_PATH + packageName + DB_DIR;
-			File folder = new File(source);
-			if (folder.exists()){
-			copyDirectory(new File(source), new File(dest));
+			//String dest = getExternalStoragePath() + BACKUP_DIR + packageName + PREF_DIR;
+			String backupCache = getExternalStoragePath() + BACKUP_DIR;
+			String metaName = packageName + "dbmetadata.txt";
+			String metaPath = backupCache + metaName;
+			//copyDirectory(new File(source), new File(backupCache));
+			File metadata = new File(metaPath);
+			String[] children = new File(source).list();
+			Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(metadata), "utf-8"));
+			for (int i=0; i<children.length; i++) {
+				 String newName = packageName + children[i];
+				// File newFile = new File(newName);
+				// File oldFile = new File(children[i]);
+				// oldFile.renameTo(newFile);
+				 copyDirectory(new File(source, children[i]),new File(backupCache, newName));
+				 bl.upload(newName);
+				 writer.write(newName + '\n');
 			}
+			writer.close();
+			bl.upload(metaName);
+		} catch (Exception e) {
+			System.out.println("ERROR in database: " + e.getMessage());
+		}
+		
 	}
+	
+	public static void databaseRestore(String packageName, BackupLib bl) {
+
+		try {
+			//String source = getExternalStoragePath() + BACKUP_DIR + packageName + PREF_DIR;
+			String dest = DATA_PATH + packageName + DB_DIR;
+			String metaName = packageName + "dbmetadata.txt";
+			String backupCache = getExternalStoragePath() + BACKUP_DIR;
+			String metaPath = backupCache + metaName;
+			int ret = bl.download(metaName);
+			if (ret == 0) {
+				File metaData = new File(metaPath);
+				BufferedReader br = new BufferedReader(new FileReader(metaData));
+				String line;
+
+				while((line = br.readLine())!= null){
+					bl.download(line);
+					int len = packageName.length();
+					String newName = line.substring(len);
+					//File newFile = new File(newName);
+					//File oldFile = new File(line);
+					//oldFile.renameTo(newFile);
+					copyDirectory(new File(backupCache, line), new File(dest, newName));
+				}
+				br.close();
+			} else {
+				Log.d("INSTRUMENT", "FILE NOT FOUND");
+			}
+		}
 		catch (Exception e) {
-			System.out.println("ERROR in replacing DB: " + e.getMessage());
+			e.printStackTrace();
+			System.out.println("ERROR in replacing prefs: " + e.getMessage());
 		}	
 		
 	}
+
 }
